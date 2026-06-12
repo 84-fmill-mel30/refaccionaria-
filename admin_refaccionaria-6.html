@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Admin — Refaccionaria Millán</title>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+:root{
+    --bg:#0a0e1a;--bg2:#131929;--bg3:#1a2240;
+    --red:#c8102e;--green:#059669;--blue:#2a5298;
+    --txt:#e0eaff;--txtD:#7890b8;--bdr:#1e3058;--orange:#ff6b00;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;background:var(--bg);color:var(--txt);font-family:Arial,sans-serif;}
+.app{display:flex;flex-direction:column;height:100vh;}
+
+.header{background:linear-gradient(135deg,#8b0000,var(--red));padding:14px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 4px 16px rgba(200,16,46,0.3);}
+.back-btn{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#fff;padding:8px 14px;border-radius:8px;text-decoration:none;font-size:12px;font-weight:700;}
+.header-title{flex:1;font-size:16px;font-weight:800;color:#fff;}
+.printer-btn{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:#fff;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:18px;}
+.printer-btn.connected{background:rgba(5,150,105,0.3);border-color:rgba(5,150,105,0.5);}
+.fb-dot{width:8px;height:8px;border-radius:50%;background:#444;margin-left:4px;}
+.fb-dot.on{background:var(--green);box-shadow:0 0 6px var(--green);}
+
+.tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--bdr);}
+.tab{flex:1;padding:11px 4px;border:none;background:transparent;color:var(--txtD);cursor:pointer;font-size:10px;font-weight:700;text-transform:uppercase;border-bottom:2px solid transparent;}
+.tab.active{color:var(--red);border-bottom-color:var(--red);}
+
+.content{flex:1;overflow-y:auto;padding:14px;}
+.panel{display:none;}.panel.active{display:block;}
+
+.card{background:var(--bg2);border:1px solid var(--bdr);border-radius:12px;padding:14px;margin-bottom:12px;}
+.card-title{font-size:13px;font-weight:800;color:var(--red);margin-bottom:12px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.form-group{display:flex;flex-direction:column;gap:5px;}
+.form-group.full{grid-column:1/-1;}
+label{font-size:10px;color:var(--txtD);text-transform:uppercase;font-weight:700;}
+input,select{padding:10px 12px;border-radius:8px;border:1px solid var(--bdr);background:var(--bg3);color:var(--txt);font-size:13px;width:100%;}
+input:focus,select:focus{outline:none;border-color:var(--red);}
+.btn{padding:12px;border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:800;cursor:pointer;width:100%;margin-top:6px;}
+.btn-red{background:linear-gradient(135deg,var(--red),#ff4d6a);}
+.btn-green{background:linear-gradient(135deg,var(--green),#00a86b);}
+.btn-blue{background:linear-gradient(135deg,var(--blue),#3a7bd5);}
+.btn-sm{padding:7px 12px;font-size:11px;width:auto;margin-top:0;border-radius:6px;}
+.msg{text-align:center;font-size:12px;margin-top:8px;height:18px;}
+.msg.ok{color:var(--green);}.msg.err{color:var(--red);}
+
+.scanner-wrap{background:var(--bg3);border:2px dashed var(--bdr);border-radius:12px;padding:16px;text-align:center;margin-bottom:12px;}
+#reader{width:100%;border-radius:8px;overflow:hidden;}
+.scan-result{background:rgba(5,150,105,0.1);border:1px solid rgba(5,150,105,0.3);color:#34d399;border-radius:8px;padding:12px;margin-top:10px;display:none;}
+.scan-result.show{display:block;}
+
+.search-box{padding:10px 12px;border-radius:8px;border:1px solid var(--bdr);background:var(--bg3);color:var(--txt);font-size:13px;width:100%;margin-bottom:12px;}
+.prod-item{background:var(--bg2);border:1px solid var(--bdr);border-radius:10px;padding:11px;margin-bottom:8px;display:flex;align-items:center;gap:10px;}
+.prod-info{flex:1;min-width:0;}
+.prod-cod{font-size:10px;color:var(--red);font-weight:800;}
+.prod-desc{font-size:12px;margin:2px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.prod-meta{font-size:11px;color:var(--txtD);}
+.prod-precio{color:var(--green);font-weight:700;}
+.prod-actions{display:flex;gap:6px;}
+.btn-add-cart{background:var(--green);border:none;color:#fff;padding:8px 10px;border-radius:6px;cursor:pointer;font-size:14px;}
+.btn-del{background:rgba(200,16,46,0.15);border:1px solid rgba(200,16,46,0.3);color:var(--red);padding:8px 10px;border-radius:6px;cursor:pointer;font-size:13px;}
+
+.cart-item{background:var(--bg2);border:1px solid var(--bdr);border-radius:8px;padding:10px;margin-bottom:8px;display:flex;align-items:center;gap:8px;}
+.cart-info{flex:1;}
+.cart-cod{font-size:10px;color:var(--red);font-weight:700;}
+.cart-desc{font-size:12px;}
+.cart-price{font-size:12px;color:var(--green);font-weight:700;}
+.qty-ctrl{display:flex;align-items:center;gap:6px;}
+.qty-btn{width:28px;height:28px;border-radius:50%;border:none;background:var(--bg3);color:var(--txt);font-size:16px;cursor:pointer;}
+.qty-num{font-size:14px;font-weight:700;min-width:24px;text-align:center;}
+.cart-del{background:none;border:none;color:var(--red);font-size:16px;cursor:pointer;}
+.total-bar{background:var(--bg3);border:1px solid var(--bdr);border-radius:12px;padding:14px;margin-bottom:12px;text-align:center;}
+.total-lbl{font-size:12px;color:var(--txtD);}
+.total-val{font-size:32px;font-weight:800;color:var(--green);}
+.empty-cart{text-align:center;padding:40px;color:var(--txtD);}
+
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.stat-card{background:var(--bg2);border:1px solid var(--bdr);border-radius:10px;padding:14px;text-align:center;}
+.stat-val{font-size:26px;font-weight:800;color:var(--red);}
+.stat-lbl{font-size:10px;color:var(--txtD);text-transform:uppercase;margin-top:4px;}
+
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:999;align-items:flex-end;justify-content:center;padding:16px;}
+.modal.show{display:flex;}
+.modal-box{background:var(--bg2);border-radius:16px;padding:20px;width:100%;max-width:400px;}
+.modal-title{font-size:16px;font-weight:800;color:var(--red);margin-bottom:14px;}
+.printer-status{text-align:center;padding:12px;font-size:13px;color:var(--txtD);background:var(--bg3);border-radius:8px;margin-bottom:12px;}
+.btn-close{background:var(--bg3);border:1px solid var(--bdr);color:var(--txt);padding:12px;border:none;border-radius:8px;font-size:13px;cursor:pointer;width:100%;margin-top:8px;}
+
+.loading{text-align:center;padding:30px;color:var(--txtD);}
+.migrate-banner{background:rgba(255,107,0,0.1);border:1px solid rgba(255,107,0,0.3);border-radius:8px;padding:12px;margin-bottom:12px;font-size:12px;color:#ff9500;display:none;}
+.migrate-banner.show{display:block;}
+</style>
+</head>
+<body>
+<div class="app">
+    <div class="header">
+        <a class="back-btn" href="index.html">← Inicio</a>
+        <div class="header-title">⚙️ Refaccionaria Millán</div>
+        <div class="fb-dot" id="fbDot" title="Firebase"></div>
+        <button class="printer-btn" id="printerBtn" onclick="showPrinterModal()">🖨️</button>
+    </div>
+
+    <div class="tabs">
+        <button class="tab active" onclick="switchTab('agregar',this)">➕ Agregar</button>
+        <button class="tab" onclick="switchTab('scanner',this)">📷 Escáner</button>
+        <button class="tab" onclick="switchTab('lista',this)">📦 Lista</button>
+        <button class="tab" onclick="switchTab('cobro',this)">💰 Cobro <span id="cartBadge" style="display:none;background:var(--red);color:#fff;border-radius:50%;padding:1px 5px;font-size:9px;margin-left:2px">0</span></button>
+        <button class="tab" onclick="switchTab('stats',this)">📊 Stats</button>
+    </div>
+
+    <div class="content">
+
+        <!-- AGREGAR -->
+        <div class="panel active" id="agregarPanel">
+            <div class="migrate-banner" id="migrateBanner">
+                ⚠️ Firebase vacío — tus 80 productos están listos para migrar
+                <br><br>
+                <button class="btn btn-blue" onclick="migrarProductos()">☁️ MIGRAR 80 PRODUCTOS A FIREBASE</button>
+            </div>
+            <div class="card">
+                <div class="card-title">➕ Nuevo Producto</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Código</label>
+                        <input id="fCod" placeholder="SF492" oninput="this.value=this.value.toUpperCase()">
+                    </div>
+                    <div class="form-group">
+                        <label>Categoría</label>
+                        <select id="fCat">
+                            <option>Focos</option><option>Reguladores</option><option>Bobinas</option>
+                            <option>Switches</option><option>Solenoides</option><option>Terminales</option>
+                            <option>Bocinas</option><option>Bulbos</option><option>Baleros</option>
+                            <option>Medidores</option><option>Palancas</option><option>Motores</option>
+                            <option>Flashers</option><option>Enchufes</option><option>Ignicion</option>
+                            <option>Accesorios</option><option>Carbones</option><option>Porta Diodos</option>
+                            <option>Otros</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group full" style="margin-bottom:10px">
+                    <label>Descripción</label>
+                    <input id="fDesc" placeholder="SOLENOIDE PARED ACURAT" oninput="this.value=this.value.toUpperCase()">
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Precio ($)</label><input id="fPrecio" type="number" placeholder="195.00" step="0.01"></div>
+                    <div class="form-group"><label>Stock</label><input id="fStock" type="number" placeholder="5"></div>
+                </div>
+                <button class="btn btn-green" onclick="agregarProducto()">✅ GUARDAR EN FIREBASE</button>
+                <div class="msg" id="fMsg"></div>
+            </div>
+        </div>
+
+        <!-- SCANNER -->
+        <div class="panel" id="scannerPanel">
+            <div class="card">
+                <div class="card-title">📷 Escáner de Código de Barras</div>
+                <div class="scanner-wrap">
+                    <p style="font-size:12px;color:var(--txtD);margin-bottom:12px">
+                        Toca el botón para abrir la cámara y escanear el código
+                    </p>
+                    <!-- Input nativo - funciona sin HTTPS -->
+                    <input type="file" id="scannerInput" accept="image/*" capture="environment"
+                        style="display:none" onchange="procesarImagen(event)">
+                    <button class="btn btn-blue" onclick="document.getElementById('scannerInput').click()">
+                        📷 ABRIR CÁMARA / GALERÍA
+                    </button>
+                    <div style="margin-top:10px;font-size:11px;color:var(--txtD)">
+                        O ingresa el código manualmente:
+                    </div>
+                    <div style="display:flex;gap:8px;margin-top:8px">
+                        <input type="text" id="manualCode" placeholder="Ej: SF492" 
+                            style="flex:1;text-transform:uppercase"
+                            oninput="this.value=this.value.toUpperCase()">
+                        <button class="btn btn-green btn-sm" onclick="buscarManual()" style="white-space:nowrap">
+                            🔍 Buscar
+                        </button>
+                    </div>
+                </div>
+                <div class="scan-result" id="scanResult">
+                    <div style="font-size:10px;color:#34d399;font-weight:700;margin-bottom:4px">✅ CÓDIGO DETECTADO</div>
+                    <div id="scanCode" style="font-size:18px;font-weight:800;font-family:monospace"></div>
+                </div>
+            </div>
+            <div class="card" id="scanProdCard" style="display:none">
+                <div class="card-title">📦 Producto Encontrado</div>
+                <div id="scanProdInfo"></div>
+                <div style="display:flex;gap:8px;margin-top:10px">
+                    <button class="btn btn-green btn-sm" onclick="addScannedToCart()" style="flex:1">🛒 Al carrito</button>
+                    <button class="btn btn-blue btn-sm" onclick="editScanned()" style="flex:1">✏️ Editar</button>
+                </div>
+            </div>
+            <div class="card" id="scanNewCard" style="display:none">
+                <div class="card-title">➕ Código nuevo — registrar</div>
+                <div class="form-group full" style="margin-bottom:10px">
+                    <label>Descripción</label>
+                    <input id="snDesc" placeholder="Descripción" oninput="this.value=this.value.toUpperCase()">
+                </div>
+                <div class="form-row">
+                    <div class="form-group"><label>Precio</label><input id="snPrecio" type="number" placeholder="0.00"></div>
+                    <div class="form-group"><label>Stock</label><input id="snStock" type="number" placeholder="1"></div>
+                </div>
+                <div class="form-group full" style="margin-bottom:10px">
+                    <label>Categoría</label>
+                    <select id="snCat"><option>Focos</option><option>Reguladores</option><option>Switches</option><option>Solenoides</option><option>Terminales</option><option>Otros</option></select>
+                </div>
+                <button class="btn btn-green" onclick="guardarNuevoEscaneado()">✅ GUARDAR EN FIREBASE</button>
+                <div class="msg" id="snMsg"></div>
+            </div>
+        </div>
+
+        <!-- LISTA -->
+        <div class="panel" id="listaPanel">
+            <input class="search-box" id="searchBox" type="text" placeholder="🔍 Buscar producto..." oninput="renderLista()">
+            <div id="listaProductos"><div class="loading">⏳ Cargando...</div></div>
+        </div>
+
+        <!-- COBRO -->
+        <div class="panel" id="cobroPanel">
+            <div class="total-bar">
+                <div class="total-lbl">TOTAL A COBRAR</div>
+                <div class="total-val" id="totalVal">$0.00</div>
+                <div style="font-size:11px;color:var(--txtD);margin-top:4px" id="totalItems">0 productos</div>
+            </div>
+            <div id="cartItems"><div class="empty-cart">🛒 Carrito vacío<br><small>Agrega desde la lista o el escáner</small></div></div>
+            <div id="cartBtns" style="display:none">
+                <button class="btn btn-green" onclick="cobrar()" style="margin-bottom:8px">💰 COBRAR Y GENERAR TICKET</button>
+                <button class="btn" style="background:#333" onclick="limpiarCarrito()">🗑️ Vaciar carrito</button>
+            </div>
+        </div>
+
+        <!-- STATS -->
+        <div class="panel" id="statsPanel">
+            <div class="stats-grid">
+                <div class="stat-card"><div class="stat-val" id="sTot">0</div><div class="stat-lbl">Productos</div></div>
+                <div class="stat-card"><div class="stat-val" id="sCat">0</div><div class="stat-lbl">Categorías</div></div>
+                <div class="stat-card"><div class="stat-val" id="sBajo" style="color:#ff6b35">0</div><div class="stat-lbl">Stock Bajo</div></div>
+                <div class="stat-card"><div class="stat-val" id="sVal" style="color:var(--green);font-size:18px">$0</div><div class="stat-lbl">Valor Total</div></div>
+            </div>
+            <div class="card">
+                <div class="card-title">📂 Por Categoría</div>
+                <div id="catStats"></div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- PRINTER MODAL -->
+<div class="modal" id="printerModal">
+    <div class="modal-box">
+        <div class="modal-title">🖨️ Impresora Bluetooth</div>
+        <div class="printer-status" id="printerStatus">Sin conectar</div>
+        <button class="btn btn-blue" onclick="connectPrinter()">🔗 CONECTAR IMPRESORA</button>
+        <button class="btn btn-green" onclick="testPrinter()" style="margin-top:8px">📝 IMPRIMIR PRUEBA</button>
+        <button class="btn-close" onclick="closePrinterModal()">Cerrar</button>
+    </div>
+</div>
+
+<!-- PRODUCTOS LOCALES PARA MIGRAR -->
+<script>
+const PRODUCTOS_LOCALES = [{"codigo":"SF492","descripcion":"SOLENOIDE PARED ACURAT","precio":195,"stock":5,"categoria":"Solenoides"},{"codigo":"A91020","descripcion":"ANTISULFATANTE CAJA CON 30 PZAS","precio":239.80,"stock":2,"categoria":"Accesorios"},{"codigo":"CINTAC","descripcion":"CINTA PLASTICA COOPER X10","precio":101,"stock":2,"categoria":"Accesorios"},{"codigo":"SPPS100","descripcion":"SWITCH 75 AMP ARROW SPPS100","precio":136,"stock":5,"categoria":"Switches"},{"codigo":"SPPS200","descripcion":"SWITCH LUZ UNIVERSAL ARROW SPPS200","precio":12,"stock":5,"categoria":"Switches"},{"codigo":"CVF49","descripcion":"CARBON MARCHA BOSCH VF49","precio":16,"stock":20,"categoria":"Carbones"},{"codigo":"F552","descripcion":"FLASHER 552 WAGNER","precio":64,"stock":5,"categoria":"Flashers"},{"codigo":"FD1211","descripcion":"FLASHER HD12 TRIDON STAN AUTOMOTIV FHD125","precio":61,"stock":5,"categoria":"Flashers"},{"codigo":"P905855","descripcion":"PASTILLA IGNICION VW 2930000","precio":92,"stock":5,"categoria":"Ignicion"},{"codigo":"P905865","descripcion":"PASTILLA IGNICION VW JETTA A3 905865 2930600","precio":5,"stock":5,"categoria":"Ignicion"},{"codigo":"TZ38C","descripcion":"TERMINAL ZAPATA 3/8 COBRIZADA","precio":89,"stock":20,"categoria":"Terminales"},{"codigo":"S82602","descripcion":"SWITCH 2 PASOS ARROW 82602","precio":68,"stock":5,"categoria":"Switches"},{"codigo":"S82600","descripcion":"SWITCH 1 PASO ARROW S82600","precio":13,"stock":5,"categoria":"Switches"},{"codigo":"EU9004","descripcion":"ENCHUFE UNIDAD FOCO 9004","precio":12,"stock":10,"categoria":"Enchufes"},{"codigo":"EUVW","descripcion":"ENCHUFE UNIDAD FOCO H4 VW BUENO","precio":12,"stock":10,"categoria":"Enchufes"},{"codigo":"T10P","descripcion":"TERMINAL BATERIA PLACA 4 TORNILLOS T01010","precio":33,"stock":10,"categoria":"Terminales"},{"codigo":"T5L","descripcion":"TERMINAL BATERIA PLACA T5L","precio":17.50,"stock":10,"categoria":"Terminales"},{"codigo":"JS2011","descripcion":"BOCINA CLAXON VW HELLA","precio":121,"stock":3,"categoria":"Bocinas"},{"codigo":"01200","descripcion":"BOCINA CLAXON CARACOL SEGER DOBLE","precio":174,"stock":3,"categoria":"Bocinas"},{"codigo":"F90071LED4C","descripcion":"FOCO 9007 LED 4 CARAS ITALIOTURBO JUEGO","precio":253,"stock":2,"categoria":"Focos"},{"codigo":"F9005LED4C","descripcion":"FOCO 9005 LED 4 CARAS FOLHID9005-GLA","precio":220,"stock":2,"categoria":"Focos"},{"codigo":"F9004LED4C","descripcion":"FOCO 9004 LED 4 CARAS ITALIOTURBO JUEGO FOLHID9004-GLA","precio":220,"stock":2,"categoria":"Focos"},{"codigo":"FHDI7LED4C","descripcion":"FOCO H7 LED 4 CARAS ITALIOTURBO FOLHIDH7-GLA JUEGO","precio":220,"stock":2,"categoria":"Focos"},{"codigo":"FH11LED4C","descripcion":"FOCO H11 LED 4 CARAS ITALIOTURBO FOLHID11-GLA JUEGO","precio":253,"stock":2,"categoria":"Focos"},{"codigo":"FH4LLED4C","descripcion":"FOCO H4 LED 4 CARAS ITALIOTURBO JUEGO FOLHIDH4-GLA","precio":98,"stock":2,"categoria":"Focos"},{"codigo":"BM70S82","descripcion":"BULBO MOTOVENT. VW CARIBE 82/68","precio":154,"stock":3,"categoria":"Bulbos"},{"codigo":"BM740","descripcion":"BULBO MOTOVENT. GM CHEVY","precio":149,"stock":3,"categoria":"Bulbos"},{"codigo":"BM71795","descripcion":"BULBO MOTOVENT. VW COMBI 95/102","precio":39,"stock":5,"categoria":"Bulbos"},{"codigo":"BR109","descripcion":"BALERO RODILLO DELCO 130 AMP ECONOM","precio":176,"stock":5,"categoria":"Baleros"},{"codigo":"M110881","descripcion":"MARCADOR ACEITE VEETHREE 10151","precio":386,"stock":2,"categoria":"Medidores"},{"codigo":"M37011","descripcion":"MARCADOR TEMPERATURA VDO","precio":187,"stock":2,"categoria":"Medidores"},{"codigo":"PYANQUI","descripcion":"PALANCA DIRECCIONAL YANQUI","precio":264,"stock":2,"categoria":"Palancas"},{"codigo":"M4365900","descripcion":"MOTOR PLACA ELEVADOR NISSAN TSURU GS CARFAN TROMPO","precio":114,"stock":2,"categoria":"Motores"},{"codigo":"PDFR1070","descripcion":"PORTA DIODO FORD FR1070","precio":132,"stock":2,"categoria":"Porta Diodos"},{"codigo":"PDF01AUTOM","descripcion":"PORTA DIODO FORD FR192-PF01 AUTOMOTIVE P01925","precio":165,"stock":2,"categoria":"Porta Diodos"},{"codigo":"PDIIHR778AUT","descripcion":"PORTA DIODO NISSAN HITACHI IHR 778 AUTOMOTIVE","precio":75,"stock":2,"categoria":"Porta Diodos"},{"codigo":"PASCHEVY","descripcion":"PASTILLA IGNICION CHEVY 2 TIPOS PDE310Y","precio":396,"stock":3,"categoria":"Ignicion"},{"codigo":"P70568","descripcion":"PALANCA DIRECCIONAL GROTE TIPO ORIGINAL CAMION ECO C ARNES","precio":317,"stock":1,"categoria":"Palancas"},{"codigo":"RIH738TP","descripcion":"REGULADOR NISSAN RIH 738 HITACHI TOTAL PARTS ASSER","precio":223,"stock":2,"categoria":"Reguladores"},{"codigo":"RIH744ASS","descripcion":"REGULADOR NISSAN RIH 744 HITACHI ASSER","precio":116,"stock":2,"categoria":"Reguladores"},{"codigo":"RF784TR","descripcion":"REGULADOR FORD F784 NEGRO TRANSPO","precio":135,"stock":3,"categoria":"Reguladores"},{"codigo":"RF794TP","descripcion":"REGULADOR FORD F794 TOTAL PARTS 41945","precio":114,"stock":3,"categoria":"Reguladores"},{"codigo":"R3258804","descripcion":"REGULADOR GM DELCO D411 CUTLAS","precio":143,"stock":3,"categoria":"Reguladores"},{"codigo":"RE140X","descripcion":"REGULADOR GM E-140XR","precio":114,"stock":5,"categoria":"Reguladores"},{"codigo":"RE141XR","descripcion":"REGULADOR FORD E-141XR","precio":114,"stock":5,"categoria":"Reguladores"},{"codigo":"RIB501","descripcion":"REGULADOR NISSAN TSURU CHUECO IB-501","precio":145,"stock":2,"categoria":"Reguladores"},{"codigo":"RD702TP","descripcion":"REGULADOR GM RD702 TOTAL PARTS ASSER 41931","precio":126,"stock":5,"categoria":"Reguladores"},{"codigo":"RLE5001","descripcion":"REGULADOR NISSAN BARCO BOSCH LE5001","precio":248,"stock":5,"categoria":"Reguladores"},{"codigo":"S71025","descripcion":"SOLENOIDE UNIVERSAL ACURAT 71025","precio":182,"stock":5,"categoria":"Solenoides"},{"codigo":"S71028","descripcion":"SOLENOIDE ARRANQUE ACURAT 71028","precio":182,"stock":5,"categoria":"Solenoides"},{"codigo":"MR700","descripcion":"MOTOR ARRANQUE RECONSTRUIDO 700","precio":2500,"stock":2,"categoria":"Motores"},{"codigo":"BAT60","descripcion":"BATERIA 60AH","precio":1200,"stock":3,"categoria":"Baterias"},{"codigo":"BAT75","descripcion":"BATERIA 75AH","precio":1500,"stock":2,"categoria":"Baterias"}];
+</script>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  ADMIN REFACCIONARIA MILLÁN — Firebase + Todo
+// ═══════════════════════════════════════════════════════
+
+let productos = [];
+let carrito   = [];
+let scanner   = null;
+let scannerActive = false;
+let scannedCode   = '';
+let printerDevice = null;
+let printerChar   = null;
+let folioActual   = parseInt(localStorage.getItem('rm_folio') || '1');
+
+// Firebase refs (se llenan en init)
+let dbAddDoc, dbDeleteDoc, dbDoc, dbCollection, dbRef, dbOnSnapshot;
+
+// ── TABS ──────────────────────────────────────────────
+function switchTab(name, el) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(name + 'Panel').classList.add('active');
+    el.classList.add('active');
+    if (name === 'lista') renderLista();
+    if (name === 'stats') renderStats();
+}
+
+// ── FIREBASE INIT ─────────────────────────────────────
+async function initFirebase() {
+    const { initializeApp }   = await import('https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js');
+    const { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, getDocs, writeBatch }
+        = await import('https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js');
+
+    const app = initializeApp({
+        apiKey: 'AIzaSyAWm_CWDQTN39ICI5vzCoPOiyt1j4eqWEA',
+        authDomain: 'refacionariamillan.firebaseapp.com',
+        projectId: 'refacionariamillan',
+        storageBucket: 'refacionariamillan.firebasestorage.app',
+        messagingSenderId: '913287506896',
+        appId: '1:913287506896:web:8c0913ed76901cf08267d5'
+    });
+
+    const db    = getFirestore(app);
+    dbRef        = collection(db, 'productos');
+    dbAddDoc     = addDoc;
+    dbDeleteDoc  = deleteDoc;
+    dbDoc        = (id) => doc(db, 'productos', id);
+    dbOnSnapshot = onSnapshot;
+
+    // Guardar writeBatch para migración
+    window._writeBatch = writeBatch;
+    window._db = db;
+    window._getDocs = getDocs;
+    window._collection = collection;
+
+    // Dot verde
+    document.getElementById('fbDot').classList.add('on');
+
+    // Escuchar cambios en tiempo real
+    onSnapshot(dbRef, snap => {
+        productos = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
+        renderLista();
+        renderStats();
+
+        // Mostrar banner de migración si Firebase está vacío
+        const banner = document.getElementById('migrateBanner');
+        banner.classList.toggle('show', productos.length === 0);
+    });
+}
+
+// ── MIGRAR PRODUCTOS LOCALES → FIREBASE ───────────────
+async function migrarProductos() {
+    if (!confirm('¿Migrar los 80 productos a Firebase?')) return;
+    const banner = document.getElementById('migrateBanner');
+    banner.innerHTML = '⏳ Migrando productos... espera';
+
+    const batch = window._writeBatch(window._db);
+    const col   = window._collection(window._db, 'productos');
+    const { doc } = await import('https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js');
+
+    PRODUCTOS_LOCALES.forEach(p => {
+        const ref = doc(col);
+        batch.set(ref, p);
+    });
+
+    try {
+        await batch.commit();
+        banner.innerHTML = '✅ ¡' + PRODUCTOS_LOCALES.length + ' productos migrados a Firebase!';
+        setTimeout(() => banner.classList.remove('show'), 4000);
+    } catch(e) {
+        banner.innerHTML = '❌ Error: ' + e.message;
+    }
+}
+
+// ── AGREGAR PRODUCTO ──────────────────────────────────
+async function agregarProducto() {
+    const msg  = document.getElementById('fMsg');
+    const cod  = document.getElementById('fCod').value.trim();
+    const desc = document.getElementById('fDesc').value.trim();
+    const pre  = parseFloat(document.getElementById('fPrecio').value);
+    const stk  = parseInt(document.getElementById('fStock').value);
+    const cat  = document.getElementById('fCat').value;
+
+    if (!cod || !desc || isNaN(pre) || isNaN(stk)) {
+        msg.textContent = '⚠️ Completa todos los campos'; msg.className = 'msg err'; return;
+    }
+    if (productos.find(p => p.codigo === cod)) {
+        msg.textContent = '❌ Código ya existe'; msg.className = 'msg err'; return;
+    }
+    try {
+        await dbAddDoc(dbRef, { codigo: cod, descripcion: desc, precio: pre, stock: stk, categoria: cat });
+        msg.textContent = '✅ Guardado en Firebase'; msg.className = 'msg ok';
+        document.getElementById('fCod').value = '';
+        document.getElementById('fDesc').value = '';
+        document.getElementById('fPrecio').value = '';
+        document.getElementById('fStock').value = '';
+        setTimeout(() => msg.textContent = '', 3000);
+    } catch(e) {
+        msg.textContent = '❌ ' + e.message; msg.className = 'msg err';
+    }
+}
+
+// ── ELIMINAR ──────────────────────────────────────────
+async function eliminarProducto(id) {
+    if (!confirm('¿Eliminar este producto?')) return;
+    try { await dbDeleteDoc(dbDoc(id)); }
+    catch(e) { alert('Error: ' + e.message); }
+}
+
+// ── LISTA ─────────────────────────────────────────────
+function renderLista() {
+    const q = (document.getElementById('searchBox')?.value || '').toLowerCase();
+    const filtrados = productos.filter(p =>
+        (p.codigo||'').toLowerCase().includes(q) ||
+        (p.descripcion||'').toLowerCase().includes(q) ||
+        (p.categoria||'').toLowerCase().includes(q)
+    );
+    const cont = document.getElementById('listaProductos');
+    if (!filtrados.length) {
+        cont.innerHTML = '<div class="empty-cart">Sin resultados</div>'; return;
+    }
+    cont.innerHTML = filtrados.map(p => `
+        <div class="prod-item">
+            <div class="prod-info">
+                <div class="prod-cod">${p.codigo} · ${p.categoria||''}</div>
+                <div class="prod-desc">${p.descripcion}</div>
+                <div class="prod-meta"><span class="prod-precio">$${parseFloat(p.precio||0).toFixed(2)}</span> · Stock: ${p.stock||0}</div>
+            </div>
+            <div class="prod-actions">
+                <button class="btn-add-cart" onclick="addToCart('${p._id}')">🛒</button>
+                <button class="btn-del" onclick="eliminarProducto('${p._id}')">🗑️</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+// ── CARRITO ───────────────────────────────────────────
+function addToCart(id) {
+    const p = productos.find(x => x._id === id);
+    if (!p) return;
+    const exist = carrito.find(x => x._id === id);
+    if (exist) exist.qty++;
+    else carrito.push({ ...p, qty: 1 });
+    updateCartUI();
+    showToast('✅ ' + p.codigo + ' agregado');
+}
+
+function addScannedToCart() {
+    const p = productos.find(x => x.codigo === scannedCode);
+    if (p) addToCart(p._id);
+}
+
+function removeFromCart(id) {
+    carrito = carrito.filter(x => x._id !== id);
+    updateCartUI();
+}
+
+function changeQty(id, delta) {
+    const item = carrito.find(x => x._id === id);
+    if (!item) return;
+    item.qty = Math.max(1, item.qty + delta);
+    updateCartUI();
+}
+
+function limpiarCarrito() {
+    if (!confirm('¿Vaciar carrito?')) return;
+    carrito = []; updateCartUI();
+}
+
+function updateCartUI() {
+    const total = carrito.reduce((s, x) => s + x.precio * x.qty, 0);
+    const items = carrito.reduce((s, x) => s + x.qty, 0);
+    document.getElementById('totalVal').textContent = '$' + total.toFixed(2);
+    document.getElementById('totalItems').textContent = items + ' producto' + (items !== 1 ? 's' : '');
+    const badge = document.getElementById('cartBadge');
+    badge.style.display = carrito.length ? 'inline' : 'none';
+    badge.textContent = carrito.length;
+    const cont = document.getElementById('cartItems');
+    const btns = document.getElementById('cartBtns');
+    if (!carrito.length) {
+        cont.innerHTML = '<div class="empty-cart">🛒 Carrito vacío<br><small>Agrega desde la lista o el escáner</small></div>';
+        btns.style.display = 'none'; return;
+    }
+    btns.style.display = 'block';
+    cont.innerHTML = carrito.map(x => `
+        <div class="cart-item">
+            <div class="cart-info">
+                <div class="cart-cod">${x.codigo}</div>
+                <div class="cart-desc">${x.descripcion}</div>
+                <div class="cart-price">$${(x.precio * x.qty).toFixed(2)}</div>
+            </div>
+            <div class="qty-ctrl">
+                <button class="qty-btn" onclick="changeQty('${x._id}',-1)">−</button>
+                <span class="qty-num">${x.qty}</span>
+                <button class="qty-btn" onclick="changeQty('${x._id}',1)">+</button>
+            </div>
+            <button class="cart-del" onclick="removeFromCart('${x._id}')">✕</button>
+        </div>
+    `).join('');
+}
+
+async function cobrar() {
+    if (!carrito.length) return;
+    const total = carrito.reduce((s, x) => s + x.precio * x.qty, 0);
+    const folio = folioActual++;
+    localStorage.setItem('rm_folio', folioActual);
+    const fecha = new Date().toLocaleString('es-MX');
+    if (printerChar) {
+        await imprimirTicket(folio, fecha, total);
+        carrito = []; updateCartUI();
+    } else {
+        alert('✅ Venta #' + String(folio).padStart(4,'0') + '\nTotal: $' + total.toFixed(2) + '\n\n⚠️ Conecta la impresora para imprimir ticket');
+        carrito = []; updateCartUI();
+    }
+}
+
+// ── ESCÁNER ───────────────────────────────────────────
+function procesarImagen(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    // Usar html5-qrcode para leer la imagen
+    const html5QrCode = new Html5Qrcode("reader");
+    Html5Qrcode.scanFile(file, true)
+        .then(code => onScanSuccess(code))
+        .catch(() => {
+            // Si no detecta código en la imagen, pedir manual
+            alert('No se detectó código. Intenta acercarte más o ingresa el código manualmente.');
+        });
+    // Reset input para poder escanear de nuevo
+    event.target.value = '';
+}
+
+function buscarManual() {
+    const code = document.getElementById('manualCode').value.trim().toUpperCase();
+    if (!code) return;
+    onScanSuccess(code);
+    document.getElementById('manualCode').value = '';
+}
+
+function onScanSuccess(code) {
+    scannedCode = code.toUpperCase();
+    document.getElementById('scanCode').textContent = code;
+    document.getElementById('scanResult').classList.add('show');
+    const prod = productos.find(p => p.codigo === scannedCode);
+    if (prod) {
+        document.getElementById('scanProdCard').style.display = 'block';
+        document.getElementById('scanNewCard').style.display  = 'none';
+        document.getElementById('scanProdInfo').innerHTML = `
+            <div class="prod-cod">${prod.codigo}</div>
+            <div style="font-size:14px;margin:4px 0">${prod.descripcion}</div>
+            <div class="prod-meta"><span class="prod-precio">$${parseFloat(prod.precio).toFixed(2)}</span> · Stock: ${prod.stock}</div>`;
+    } else {
+        document.getElementById('scanProdCard').style.display = 'none';
+        document.getElementById('scanNewCard').style.display  = 'block';
+    }
+}
+function editScanned() {
+    document.getElementById('fCod').value = scannedCode;
+    document.querySelector('[onclick="switchTab(\'agregar\',this)"]').click();
+}
+async function guardarNuevoEscaneado() {
+    const desc = document.getElementById('snDesc').value.trim();
+    const pre  = parseFloat(document.getElementById('snPrecio').value);
+    const stk  = parseInt(document.getElementById('snStock').value);
+    const cat  = document.getElementById('snCat').value;
+    const msg  = document.getElementById('snMsg');
+    if (!desc || isNaN(pre) || isNaN(stk)) { msg.textContent = '⚠️ Completa los campos'; msg.className = 'msg err'; return; }
+    try {
+        await dbAddDoc(dbRef, { codigo: scannedCode, descripcion: desc, precio: pre, stock: stk, categoria: cat });
+        msg.textContent = '✅ Guardado'; msg.className = 'msg ok';
+        document.getElementById('scanNewCard').style.display = 'none';
+    } catch(e) { msg.textContent = '❌ ' + e.message; msg.className = 'msg err'; }
+}
+
+// ── STATS ─────────────────────────────────────────────
+function renderStats() {
+    const cats  = new Set(productos.map(p => p.categoria || 'General'));
+    const bajo  = productos.filter(p => (p.stock||0) <= 5).length;
+    const valor = productos.reduce((s, p) => s + ((p.precio||0)*(p.stock||0)), 0);
+    document.getElementById('sTot').textContent = productos.length;
+    document.getElementById('sCat').textContent = cats.size;
+    document.getElementById('sBajo').textContent = bajo;
+    document.getElementById('sVal').textContent  = '$' + valor.toLocaleString('es-MX', {minimumFractionDigits:0});
+    const catMap = {};
+    productos.forEach(p => { const c = p.categoria||'General'; catMap[c] = (catMap[c]||0)+1; });
+    const sorted = Object.entries(catMap).sort((a,b) => b[1]-a[1]);
+    document.getElementById('catStats').innerHTML = sorted.map(([c,n]) =>
+        `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bdr)"><span style="font-size:13px">${c}</span><span style="font-size:12px;color:var(--red);font-weight:700">${n} pzas</span></div>`
+    ).join('');
+}
+
+// ── IMPRESORA BLUETOOTH ───────────────────────────────
+function showPrinterModal() { document.getElementById('printerModal').classList.add('show'); updatePrinterStatus(); }
+function closePrinterModal() { document.getElementById('printerModal').classList.remove('show'); }
+function updatePrinterStatus() {
+    const el = document.getElementById('printerStatus');
+    if (printerChar) { el.innerHTML = '🟢 ' + (printerDevice?.name||'Conectada'); document.getElementById('printerBtn').classList.add('connected'); }
+    else { el.innerHTML = '🔴 Sin conectar'; document.getElementById('printerBtn').classList.remove('connected'); }
+}
+async function connectPrinter() {
+    if (!navigator.bluetooth) { alert('Usa Chrome en Android para Bluetooth'); return; }
+    try {
+        document.getElementById('printerStatus').textContent = '🔍 Buscando...';
+        printerDevice = await navigator.bluetooth.requestDevice({
+            filters: [{ services: ['000018f0-0000-1000-8000-00805f9b34fb'] }],
+            optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb']
+        });
+        const server  = await printerDevice.gatt.connect();
+        const service = await server.getPrimaryService('000018f0-0000-1000-8000-00805f9b34fb');
+        printerChar   = await service.getCharacteristic('00002af1-0000-1000-8000-00805f9b34fb');
+        updatePrinterStatus();
+        showToast('✅ Impresora conectada');
+    } catch(e) { document.getElementById('printerStatus').textContent = '❌ ' + e.message; }
+}
+async function testPrinter() {
+    if (!printerChar) { alert('Conecta la impresora primero'); return; }
+    await sendToPrinter('\x1B\x40\x1B\x61\x01\x1B\x21\x30REFACCIONARIA MILLAN\n\x1B\x21\x00PRUEBA OK\n' + new Date().toLocaleString('es-MX') + '\n\n\n\x1D\x56\x41\x03');
+}
+async function imprimirTicket(folio, fecha, total) {
+    const sep = '-'.repeat(21) + '\n';
+    let txt = '\x1B\x40\x1B\x61\x01\x1B\x21\x30REFACCIONARIA MILLAN\n\x1B\x21\x00Partes Electricas\n' + sep;
+    txt += '\x1B\x61\x00';
+    txt += 'Folio: #' + String(folio).padStart(4,'0') + '\n';
+    txt += 'Fecha: ' + fecha + '\n' + sep;
+    carrito.forEach(x => {
+        const line = (x.descripcion.substring(0,18) + ' ').padEnd(19) + String(x.qty).padStart(2) + ' $' + (x.precio*x.qty).toFixed(2) + '\n';
+        txt += line;
+    });
+    txt += sep + '\x1B\x61\x02\x1B\x21\x10TOTAL: $' + total.toFixed(2) + '\n\x1B\x21\x00\x1B\x61\x01Gracias por su compra!\nDATESEG MX\n\n\n\x1D\x56\x41\x03';
+    await sendToPrinter(txt);
+}
+async function sendToPrinter(text) {
+    if (!printerChar) return;
+    const data  = new TextEncoder().encode(text);
+    const chunk = 512;
+    for (let i = 0; i < data.length; i += chunk) {
+        await printerChar.writeValue(data.slice(i, i+chunk));
+        await new Promise(r => setTimeout(r, 80));
+    }
+}
+
+// ── TOAST ─────────────────────────────────────────────
+function showToast(msg) {
+    const t = document.createElement('div');
+    t.textContent = msg;
+    t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#059669;color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:700;z-index:9999;white-space:nowrap';
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 2500);
+}
+
+// ── ARRANCAR ──────────────────────────────────────────
+initFirebase();
+</script>
+</body>
+</html>
